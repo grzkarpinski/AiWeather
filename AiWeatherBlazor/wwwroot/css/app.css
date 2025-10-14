@@ -100,6 +100,13 @@ code {
 }
 
 /* Minimalist weather styles */
+.weather-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
 .minimal-card {
     border: 1px solid rgba(0,0,0,0.06);
     border-radius: 8px;
