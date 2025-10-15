@@ -1,9 +1,27 @@
+using AiWeatherApi.Configuration;
+using Microsoft.Extensions.Options;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient();
+
+// Konfiguracja Options pattern dla OpenAI
+builder.Services.Configure<OpenAIOptions>(options =>
+{
+    var config = builder.Configuration;
+    options.ApiKey = config["OpenAI:ApiKey"] 
+        ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY") 
+        ?? string.Empty;
+    options.Model = config["OpenAI:Model"] ?? "gpt-4o-mini";
+});
+
+// Walidacja opcji przy starcie aplikacji
+builder.Services.AddOptionsWithValidateOnStart<OpenAIOptions>()
+    .Validate(options => !string.IsNullOrWhiteSpace(options.ApiKey), 
+        "Klucz API OpenAI nie zosta³ skonfigurowany. Ustaw go w User Secrets lub zmiennej œrodowiskowej OPENAI_API_KEY.");
 
 // Dodanie CORS
 builder.Services.AddCors(options =>
@@ -24,6 +42,18 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Walidacja konfiguracji przy starcie
+try
+{
+    var options = app.Services.GetRequiredService<IOptions<OpenAIOptions>>().Value;
+    app.Logger.LogInformation("Konfiguracja OpenAI za³adowana pomyœlnie. Model: {Model}", options.Model);
+}
+catch (OptionsValidationException ex)
+{
+    app.Logger.LogCritical(ex, "B³¹d konfiguracji OpenAI. Aplikacja nie mo¿e zostaæ uruchomiona.");
+    throw;
+}
 
 if (app.Environment.IsDevelopment())
 {

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using AiWeatherApi.Models;
+using AiWeatherApi.Configuration;
 using System.Text.Json;
 using System.Globalization;
 using OpenAI.Responses;
@@ -12,39 +14,30 @@ public class WeatherChatController : ControllerBase
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<WeatherChatController> _logger;
-#pragma warning disable OPENAI001
-    private readonly OpenAIResponseClient _openAiClient;
-#pragma warning restore OPENAI001
+    private readonly OpenAIOptions _openAiOptions;
 
     public WeatherChatController(
         IHttpClientFactory httpClientFactory, 
         ILogger<WeatherChatController> logger,
-        IConfiguration config)
+        IOptions<OpenAIOptions> openAiOptions)
     {
         _httpClient = httpClientFactory.CreateClient();
         _logger = logger;
-
-        var apiKey = config["OpenAI:ApiKey"] ?? Environment.GetEnvironmentVariable("OPENAI_API_KEY");
-        if (string.IsNullOrEmpty(apiKey))
-            throw new InvalidOperationException("Brakuje klucza OpenAI (User Secrets lub zmienna œrodowiskowa).");
-
-#pragma warning disable OPENAI001
-        _openAiClient = new OpenAIResponseClient(model: "gpt-4o-mini", apiKey: apiKey);
-#pragma warning restore OPENAI001
+        _openAiOptions = openAiOptions.Value;
     }
 
     [HttpGet("{city}")]
     public async Task<IActionResult> GetWeatherWithAiComment(string city)
     {
         if (string.IsNullOrWhiteSpace(city))
-            return BadRequest("Nazwa miasta nie mo¿e byæ pusta.");
+            return BadRequest(new { error = "Nazwa miasta nie mo¿e byæ pusta." });
 
         try
         {
             // Krok 1: Pobranie danych pogodowych
             var weatherData = await GetWeatherDataAsync(city);
             if (weatherData == null)
-                return NotFound($"Nie znaleziono danych pogodowych dla miasta: {city}");
+                return NotFound(new { error = $"Nie znaleziono danych pogodowych dla miasta: {city}" });
 
             // Krok 2: Przygotowanie promptu dla AI
             var prompt = $@"Jesteœ sarkastycznym komentatorem pogody. Na podstawie poni¿szych danych pogodowych:
@@ -57,8 +50,16 @@ Warunki: {weatherData.WeatherDescription}
 Opisz pogodê w sarkastycznie humorystyczny sposób (2-3 zdania) i doradŸ, co za³o¿yæ. B¹dŸ dowcipny, ale pomocny.";
 
             // Krok 3: Wywo³anie OpenAI
-            var aiResponse = await _openAiClient.CreateResponseAsync(prompt);
+#pragma warning disable OPENAI001
+            var openAiClient = new OpenAIResponseClient(
+                model: _openAiOptions.Model, 
+                apiKey: _openAiOptions.ApiKey);
+#pragma warning restore OPENAI001
+
+            var aiResponse = await openAiClient.CreateResponseAsync(prompt);
             var aiComment = aiResponse.Value.GetOutputText() ?? "AI nie mog³o wygenerowaæ komentarza.";
+
+            _logger.LogInformation("Pomyœlnie wygenerowano komentarz AI dla miasta: {City}", city);
 
             // Krok 4: Zwrócenie po³¹czonej odpowiedzi
             var result = new WeatherChatResponse
@@ -75,7 +76,7 @@ Opisz pogodê w sarkastycznie humorystyczny sposób (2-3 zdania) i doradŸ, co za³o
         catch (Exception ex)
         {
             _logger.LogError(ex, "B³¹d podczas przetwarzania ¿¹dania dla miasta: {City}", city);
-            return StatusCode(500, "Wyst¹pi³ b³¹d podczas przetwarzania ¿¹dania.");
+            return StatusCode(500, new { error = "Wyst¹pi³ b³¹d podczas przetwarzania ¿¹dania." });
         }
     }
 
