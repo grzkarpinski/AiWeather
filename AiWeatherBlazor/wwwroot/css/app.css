@@ -97,6 +97,33 @@ code {
     --c1: var(--c-medium);
     --c2: var(--c-dark);
     --c3: #2e7d3e; /* darker accent */
+
+    /* Light mode colors */
+    --bg-color: #ffffff;
+    --text-color: #1c2938;
+    --text-muted: #6c757d;
+    --card-bg: #ffffff;
+    --card-border: rgba(0,0,0,0.06);
+    --primary-text: #0d6efd;
+}
+
+/* Dark mode colors */
+body.dark-mode {
+    --c-dark: #5E936C;
+    --c-medium: #7BAA88;
+    --c-light: #93DA97;
+    --c-bg: #1a2a1a;
+
+    --c1: var(--c-medium);
+    --c2: var(--c-light);
+    --c3: #93DA97;
+
+    --bg-color: #1a1a1a;
+    --text-color: #e8e8e8;
+    --text-muted: #a0a0a0;
+    --card-bg: #2a2a2a;
+    --card-border: rgba(255,255,255,0.1);
+    --primary-text: #7BAA88;
 }
 
 /* Minimalist weather styles */
@@ -108,10 +135,10 @@ code {
 }
 
 .minimal-card {
-    border: 1px solid rgba(0,0,0,0.06);
+    border: 1px solid var(--card-border);
     border-radius: 8px;
     box-shadow: none;
-    background: white;
+    background: var(--card-bg);
 }
 
 .btn-accent {
@@ -148,7 +175,7 @@ code {
 
 .ai-comment-minimal {
     margin-top: 0.5rem;
-    color: #1c2938;
+    color: var(--text-color);
     line-height: 1.45;
     font-size: 0.95rem;
     border-left: 3px solid var(--c-light);
@@ -169,4 +196,49 @@ code {
 
 @media (max-width: 575px) {
     .stats-minimal { flex-direction: column; gap: 0.5rem; }
+}
+
+/* Global body and page styles */
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.text-primary {
+    color: var(--primary-text) !important;
+}
+
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Dark mode toggle button */
+.dark-mode-toggle {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    padding: 0.5rem;
+    border: none;
+    border-radius: 50%;
+    background: var(--card-bg);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.3s ease;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dark-mode-toggle:hover {
+    transform: scale(1.1);
+}
+
+.dark-mode-toggle svg {
+    width: 24px;
+    height: 24px;
+    fill: var(--text-color);
 }
